@@ -1,0 +1,23 @@
+ALTER TABLE "strategies" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "strategies" ADD FOREIGN KEY ("asset_id") REFERENCES "asset" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "strategy_indicators" ADD FOREIGN KEY ("strategy_id") REFERENCES "strategies" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "strategy_indicators" ADD FOREIGN KEY ("indicator_id") REFERENCES "indicator" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "rsi_values" ADD FOREIGN KEY ("candle_id") REFERENCES "market_data" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "macd_values" ADD FOREIGN KEY ("candle_id") REFERENCES "market_data" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "market_data" ADD FOREIGN KEY ("asset_id") REFERENCES "asset" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "market_data" ADD FOREIGN KEY ("timeframe") REFERENCES "timeframe" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "backtest" ADD FOREIGN KEY ("timeframe_id") REFERENCES "timeframe" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "backtest" ADD FOREIGN KEY ("strategy_id") REFERENCES "strategies" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "trade" ADD FOREIGN KEY ("backtest_id") REFERENCES "backtest" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "trade" ADD FOREIGN KEY ("position_type_id") REFERENCES "position_type" ("id") DEFERRABLE INITIALLY IMMEDIATE;
