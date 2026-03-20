@@ -1,6 +1,6 @@
 import ccxt
 import time
-from base import BrokerBase
+from data.broker.base import BrokerBase
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -28,9 +28,11 @@ class BinanceClient(BrokerBase):
             since = self.start_timestamp
         if limit is None:
             limit = self.default_limit
+        logger.info(f"start fetch candle: asset = {asset}, timeframe = {timeframe}")
         for attempt in range(max_retries):
             try:
                 response = self.exchange.fetch_ohlcv(asset, timeframe, since = since, limit = limit)
+                logger.info(f"fetched {len(response)} candles")
                 break
             except ccxt.ExchangeError as e:
                 logger.error(f"ExchangeError: {e}")
