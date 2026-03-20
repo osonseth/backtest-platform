@@ -35,7 +35,6 @@ class BinanceClient(BrokerBase):
                 logger.info(f"fetched {len(response)} candles")
                 break
             except ccxt.ExchangeError as e:
-                logger.error(f"ExchangeError: {e}")
                 raise
             except (ccxt.NetworkError, ccxt.RateLimitExceeded) as e:
                 wait = 2 ** attempt
@@ -45,7 +44,6 @@ class BinanceClient(BrokerBase):
                 logger.warning(f"NetworkError attempt {attempt + 1}/{max_retries}: {e}. Retrying in {wait}s...")
                 time.sleep(wait)
             except Exception as e:
-                logger.error(f"Exception:{e}")
                 raise
         return response
     
