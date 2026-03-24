@@ -54,7 +54,7 @@ class CandleValidator:
         if volume < 0:
             raise ValueError(f"Inconsistent volume value in candle: {candle}")
         if self.last_close and self.last_close != open:
-            logger.warning(f"Opening is different from the closing of the last candle: {candle}")
+            logger.debug(f"Opening is different from the closing of the last candle: {candle}")
         self.last_close = close
 
     def _check_nulls(self, candle: list):
