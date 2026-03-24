@@ -28,6 +28,23 @@ class Database:
             logger.error(f"Failed to connect to database: {e}")
             raise
 
+    def get_or_create_asset_id(self, asset: str) -> int:
+        """
+        Get the id of an asset, creating it if it doesn't exist.
+        :param asset: asset's name
+        :return: asset's id
+        """
+        query_select = "SELECT id FROM asset WHERE name = %s"
+        query_insert = "INSERT INTO asset (name) VALUES (%s) RETURNING id"
+        with self.conn.cursor() as cur:
+            cur.execute(query_select, (asset,))
+            id = cur.fetchone()
+            if id is None:
+                cur.execute(query_insert, (asset,))
+                id = cur.fetchone()
+                self.conn.commit()
+            return id[0]
+
     def get_asset_id(self, asset: str) -> int:
         """
         get id of asset in database.
@@ -50,7 +67,7 @@ class Database:
         :return : timeframe' s id
         :raises KeyError: if the timeframe is not found in database
         """ 
-        query = "SELECT id FROM timeframe WHERE name = %s"
+        query = "SELECT id FROM timeframe WHERE label = %s"
         with self.conn.cursor() as cur:
             cur.execute(query, (timeframe,))
             id = cur.fetchone()
