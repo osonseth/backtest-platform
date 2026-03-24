@@ -12,7 +12,7 @@ ALTER TABLE "macd_values" ADD FOREIGN KEY ("candle_id") REFERENCES "market_data"
 
 ALTER TABLE "market_data" ADD FOREIGN KEY ("asset_id") REFERENCES "asset" ("id") DEFERRABLE INITIALLY IMMEDIATE;
 
-ALTER TABLE "market_data" ADD FOREIGN KEY ("timeframe") REFERENCES "timeframe" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE "market_data" ADD FOREIGN KEY ("timeframe_id") REFERENCES "timeframe" ("id") DEFERRABLE INITIALLY IMMEDIATE;
 
 ALTER TABLE "backtest" ADD FOREIGN KEY ("timeframe_id") REFERENCES "timeframe" ("id") DEFERRABLE INITIALLY IMMEDIATE;
 
