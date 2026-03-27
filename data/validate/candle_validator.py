@@ -1,17 +1,25 @@
 import math
 from utils.logger import get_logger
+from utils.time_utils import to_datetime
 
 logger = get_logger(__name__)
 
 TIMEFRAME_MS = {
-    '1m': 60 * 1000,
-    '5m': 5 * 60 * 1000,
+    '1m':  60 * 1000,
+    '3m':  3 * 60 * 1000,
+    '5m':  5 * 60 * 1000,
     '15m': 15 * 60 * 1000,
-    '1h': 60 * 60 * 1000,
-    '4h': 4 * 60 * 60 * 1000,
-    '1d': 24 * 60 * 60 * 1000,
-    '1w': 7 * 24 * 60 * 60 * 1000,
-    '1M': 30 * 24 * 60 * 60 * 1000,
+    '30m': 30 * 60 * 1000,
+    '1h':  60 * 60 * 1000,
+    '2h':  2 * 60 * 60 * 1000,
+    '4h':  4 * 60 * 60 * 1000,
+    '6h':  6 * 60 * 60 * 1000,
+    '8h':  8 * 60 * 60 * 1000,
+    '12h': 12 * 60 * 60 * 1000,
+    '1d':  24 * 60 * 60 * 1000,
+    '3d':  3 * 24 * 60 * 60 * 1000,
+    '1w':  7 * 24 * 60 * 60 * 1000,
+    '1M':  30 * 24 * 60 * 60 * 1000,
 }
 
 class CandleValidator:
@@ -63,11 +71,13 @@ class CandleValidator:
                 raise ValueError(f"Null or NaN value detected in candle: {candle}")
 
     def _check_candle_continuity(self, candle: list, timeframe: str):
-        if self.last_timestamp is not None and self.last_timestamp + TIMEFRAME_MS[timeframe] != candle[0]:
-            logger.warning( f"Timestamp continuity issue detected:\n"
-                            f"  Previous timestamp: {self.last_timestamp}\n"
-                            f"  Current candle: {candle}")
-        self.last_timestamp = candle[0]
+        if timeframe != '1M':
+            if self.last_timestamp is not None and self.last_timestamp + TIMEFRAME_MS[timeframe] != candle[0]:
+                logger.warning( f"Timestamp continuity issue detected:\n"
+                                f"Previous timestamp: {self.last_timestamp} - {to_datetime(self.last_timestamp)}\n"
+                                f"current timestamps: {candle[0]} - {to_datetime(candle[0])}\n"
+                                f"  Current candle: {candle}")
+            self.last_timestamp = candle[0]
             
 
     
