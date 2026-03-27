@@ -1,0 +1,12 @@
+{
+  "asset_timeframes": [
+    {
+      "asset": "BTC/USDT",
+      "timeframes": ["1d", "4h", "1h"]
+    },
+    {
+      "asset": "ETH/USDT", 
+      "timeframes": ["1d", "1h"]
+    }
+  ]
+}
