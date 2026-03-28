@@ -12,7 +12,13 @@ def format_candles_for_db(candles: list, asset_id: int, timeframe_id: int) -> li
     return [(asset_id, timeframe_id, to_datetime(candle[0]), *candle[1:]) for candle in candles]
 
 def normalizes_candle(k: dict) -> list:
-    timestamp = to_datetime(k["t"])
+    """
+    Normalize a raw Binance WebSocket kline dict into a standard OHLCV list.
+    Converts string values to float and timestamp to int.
+    :param k: Raw kline dict from Binance WebSocket message (data["data"]["k"])
+    :return: List [timestamp_ms, open, high, low, close, volume]
+    """
+    timestamp = int(k["t"])
     open = float(k["o"])
     high = float(k["h"])
     low = float(k["l"])
