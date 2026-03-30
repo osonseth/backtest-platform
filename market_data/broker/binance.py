@@ -2,7 +2,7 @@ import ccxt
 import time
 import websockets
 from typing import AsyncGenerator
-from data.broker.base import BrokerBase
+from market_data.broker.base import BrokerBase
 from utils.logger import get_logger
 
 logger = get_logger(__name__)

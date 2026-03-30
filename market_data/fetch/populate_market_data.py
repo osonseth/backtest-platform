@@ -1,9 +1,9 @@
 import pandas as pd
 import argparse
 import json
-from data.broker.binance import BinanceClient
-from data.repository.db import Database
-from data.validate.candle_validator import CandleValidator
+from market_data.broker.binance import BinanceClient
+from market_data.repository.db import Database
+from market_data.validate.candle_validator import CandleValidator
 from utils.candle_utils import format_candles_for_db
 from utils.logger import get_logger
 

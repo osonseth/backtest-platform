@@ -1,8 +1,9 @@
 import asyncio
 import json
-from data.broker.binance import BinanceClient
-from data.repository.db import Database
-from data.validate.candle_validator import CandleValidator TIMEFRAME_MS
+from market_data.broker.binance import BinanceClient
+from market_data.repository.db import Database
+from market_data.validate.candle_validator import CandleValidator
+from utils.time_utils import TIMEFRAME_MS
 from utils.candle_utils import normalizes_candle
 from utils.candle_utils import format_candles_for_db
 from utils.logger import get_logger
@@ -69,7 +70,7 @@ async def main():
                     last_ts = last_seen_ts.get(asset_id, 0)
                     if candle[0] <= last_ts:
                         continue
-                    if candle[0] > last_ts + 60000:
+                    if candle[0] > last_ts + TIMEFRAME_MS["1m"]:
                         backfill({asset: asset_id}, timeframe_id, last_seen_ts, database, exchange)
                     
                     last_seen_ts[asset_id] = candle[0]
