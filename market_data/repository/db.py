@@ -2,7 +2,7 @@ import os
 import psycopg2
 from psycopg2.extras import execute_values
 from dotenv import load_dotenv
-from datetime import datetime
+from datetime import datetime, timezone
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -139,4 +139,4 @@ class Database:
             timestamp = cur.fetchone()
             if timestamp is None:
                 raise LookupError("No candle found for asset_id={asset_id} and timeframe_id={timeframe_id}")
-            return timestamp[0]
+            return timestamp[0].replace(tzinfo=timezone.utc)
