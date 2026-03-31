@@ -1,3 +1,4 @@
+import time
 from datetime import datetime, timezone
 
 TIMEFRAME_MS = {
@@ -20,3 +21,14 @@ TIMEFRAME_MS = {
 
 def to_datetime(timestamp_ms: int) -> datetime:
     return datetime.fromtimestamp(timestamp_ms / 1000, tz=timezone.utc)
+
+def to_timestamp_ms(dt: datetime) -> int:
+    return int(dt.replace(tzinfo=timezone.utc).timestamp() * 1000)
+
+def is_near_minute_end(tolerance_sec=1):
+
+    now_ms = int(time.time() * 1000)
+    now_dt = datetime.fromtimestamp(now_ms / 1000, tz=timezone.utc)
+    sec_in_min = now_dt.second
+
+    return sec_in_min >= 60 - tolerance_sec or sec_in_min <= tolerance_sec
