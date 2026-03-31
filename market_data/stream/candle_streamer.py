@@ -1,4 +1,5 @@
 import json
+import asyncio
 from market_data.broker.binance import BinanceClient
 from market_data.repository.db import Database
 from market_data.validate.candle_validator import CandleValidator
@@ -63,13 +64,18 @@ class CandleStreamer:
                     break
     
     async def run_streaming(self)-> None:
-    
+        
+        attempt_time_sec = 30
+        connected = False
         while True:
             try:
                 async for msg in self.exchange.connect_stream(list(self.asset_ids)):
+                    if connected is False:
+                        connected = True
+                        attempt_time_sec = 30
                     data = json.loads(msg)
                     candle = data["data"]["k"]
-            
+
                     if candle["x"]:
                         stream_symbol = candle["s"].lower()
                         asset = self.exchange.ws_symbol_map[stream_symbol]
@@ -89,3 +95,7 @@ class CandleStreamer:
                     
             except Exception as e:
                 logger.error(f"{e}")
+                connected = False
+                await asyncio.sleep(attempt_time_sec)
+                if attempt_time_sec < 60 * 60:
+                    attempt_time_sec *= 2
