@@ -34,6 +34,7 @@ class BinanceClient(BrokerBase):
         if limit is None:
             limit = self.default_limit
         logger.info(f"start fetch candle: asset = {asset}, timeframe = {timeframe}")
+
         for attempt in range(max_retries):
             try:
                 response = self.exchange.fetch_ohlcv(asset, timeframe, since = since, limit = limit)
