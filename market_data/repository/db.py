@@ -141,7 +141,7 @@ class Database:
                 raise LookupError(f"No candle found for asset_id={asset_id} and timeframe_id={timeframe_id}")
             return timestamp[0].replace(tzinfo=timezone.utc)
         
-    def get_candles_for_aggregation(self, n: int, asset_id: int, timeframe_id: int) -> list:
+    def get_candles_for_aggregation(self, limit: int, asset_id: int, timeframe_id: int) -> list:
         query = """
         SELECT asset_id, timeframe_id, open_time, open, high, low, close, volume
         FROM market_data
@@ -150,8 +150,22 @@ class Database:
         LIMIT %s
         """
         with self.conn.cursor() as cur:
-            cur.execute(query, (asset_id, timeframe_id, n))
+            cur.execute(query, (asset_id, timeframe_id, limit))
             candles = cur.fetchall()
             if not candles:
                 raise LookupError(f"No candles found for aggregation with asset_id={asset_id}")
+            return candles
+        
+    def get_candles(self, asset_id: int, timeframe_id: int) -> list:
+        query = """
+        SELECT id, asset_id, timeframe_id, open_time, open, high, low, close, volume
+        FROM market_data
+        WHERE asset_id = %s AND timeframe_id = %s
+        ORDER BY open_time ASC
+        """
+        with self.conn.cursor() as cur:
+            cur.execute(query, (asset_id, timeframe_id))
+            candles = cur.fetchall()
+            if not candles:
+                raise LookupError(f"No candles found with asset_id={asset_id}")
             return candles
