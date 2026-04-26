@@ -1,25 +1,14 @@
 import pandas as pd
-import ccxt
 import argparse
 import json
-from data.broker.binance import BinanceClient
-from data.repository.db import Database
-from data.validate.candle_validator import CandleValidator
-from utils.time_utils import to_datetime
+from market_data.broker.binance import BinanceClient
+from market_data.repository.db import Database
+from market_data.validate.candle_validator import CandleValidator
+from utils.candle_utils import format_candles_for_db
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-def format_candles_for_db(candles: list, asset_id: int, timeframe_id: int) -> list:
-    """
-    Formats raw OHLCV candles into tuples ready for database insertion.
-    Prepends asset_id and timeframe_id, and converts the timestamp from milliseconds to datetime.
-    :param candles : List of OHLCV candles [[timestamp, open, high, low, close, volume], ...]
-    :param asset_id: Database ID of the asset
-    :param timeframe_id: Database ID of the timeframe
-    :return : List of  tuples OHLCV candles [(asset_id, timeframe_id, timestamp, open, high, low, close, volume), ...]
-    """
-    return [(asset_id, timeframe_id, to_datetime(candle[0]), *candle[1:]) for candle in candles]
 
 def argsParser() -> argparse.Namespace:
     """
