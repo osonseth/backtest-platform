@@ -11,6 +11,12 @@ from utils.logger import get_logger
 logger = get_logger(__name__)
 
 class CandleStreamer:
+    """
+    Handles real-time candle streaming from Binance WebSocket.
+    Manages backfill on startup and reconnection, gap detection,
+    and aggregation of higher timeframes from 1m candles.
+    """
+
     def __init__(self):
         self.exchange = BinanceClient()
         self.database = Database()
@@ -20,11 +26,25 @@ class CandleStreamer:
 
 
     def _load_config(self, config_path: str)-> list:
+        """
+        Load the list of assets to stream from a JSON config file.
+        :param config_path: Path to the JSON config file
+        :return: List of asset names in standard format (e.g. ['BTC/USDT', 'ETH/USDT'])
+        :raises FileNotFoundError: If the config file does not exist
+        """
+
         with open(config_path) as f:
             data = json.load(f)
         return data["assets"]
 
     def init_and_backfill(self, config_path: str)-> None:
+        """
+        Initialize the streamer and backfill missing candles for all assets and timeframes.
+        Loads config, fetches asset and timeframe IDs from the database,
+        runs backfill, and initializes last_seen_ts for each asset.
+        :param config_path: Path to the JSON config file
+        """
+
         assets = self._load_config(config_path)
 
         self.timeframes_id = { 
@@ -51,41 +71,52 @@ class CandleStreamer:
 
 
     def _backfill(self, asset_ids=None) -> None:
+        """
+        Fetch and insert missing candles for all assets and timeframes since the last known timestamp.
+        If no data exists in the database, fetches from the exchange start date.
+        :param asset_ids: Dict of {asset: asset_id} to backfill. Defaults to all assets if None.
+        """
 
-            if asset_ids is None:
-                asset_ids = self.asset_ids
+        if asset_ids is None:
+            asset_ids = self.asset_ids
 
-            for asset, asset_id in asset_ids.items():
-                for timeframe, timeframe_id in self.timeframes_id.items():
-                    validator = CandleValidator()
+        for asset, asset_id in asset_ids.items():
+            for timeframe, timeframe_id in self.timeframes_id.items():
+                validator = CandleValidator()
 
-                    try:
-                        db_last_ts = self.database.get_last_candle_timestamp(asset_id, timeframe_id)
-                        fetch_since_ms = int(db_last_ts.timestamp() * 1000)
-                    except LookupError as e:
-                        logger.warning(f"{e}")
-                        fetch_since_ms = self.exchange.start_timestamp
+                try:
+                    db_last_ts = self.database.get_last_candle_timestamp(asset_id, timeframe_id)
+                    fetch_since_ms = int(db_last_ts.timestamp() * 1000)
+                except LookupError as e:
+                    logger.warning(f"{e}")
+                    fetch_since_ms = self.exchange.start_timestamp
+
+                while True:
+
+                    candles = self.exchange.fetch_candles(asset, timeframe, since=fetch_since_ms)
     
-                    while True:
+                    if candles:
+                        validator.validate(candles, timeframe)
 
-                        candles = self.exchange.fetch_candles(asset, timeframe, since=fetch_since_ms)
-        
-                        if candles:
-                            validator.validate(candles, timeframe)
+                        last_candle_ts = candles[-1][0]
+                        fetch_since_ms = last_candle_ts + 1
+                        if timeframe == "1m":
+                            self.last_seen_ts[asset_id] = last_candle_ts
 
-                            last_candle_ts = candles[-1][0]
-                            fetch_since_ms = last_candle_ts + 1
-                            if timeframe == "1m":
-                                self.last_seen_ts[asset_id] = last_candle_ts
+                        candles = format_candles_for_db(candles, asset_id, timeframe_id)
+                        self.database.insert_candle_stream(candles)
 
-                            candles = format_candles_for_db(candles, asset_id, timeframe_id)
-                            self.database.insert_candle_stream(candles)
-
-                        if len(candles) < self.exchange.default_limit:
-                            break
+                    if len(candles) < self.exchange.default_limit:
+                        break
         
     async def run_streaming(self)-> None:
-        
+        """
+        Open the WebSocket stream and process incoming candles in real time.
+        Handles gap detection and backfill on trou detected.
+        Implements exponential backoff on connection failure, capped at 1 hour.
+        Automatically reconnects on disconnection or error.
+        """
+
         attempt_time_sec = 30
         connected = False
         if is_near_minute_end():
@@ -103,17 +134,12 @@ class CandleStreamer:
                     if candle["x"]:
                         stream_symbol = candle["s"].lower()
                         asset = self.exchange.ws_symbol_map[stream_symbol]
-                        logger.critical(f"asset str = {asset}")
                         asset_id = self.asset_ids[asset]
-                        logger.critical(f"asset_id = {asset_id}")
                         candle = normalizes_candle(candle)
-                        logger.critical(f" normalized candle stream = {candle}")
                         last_ts = self.last_seen_ts.get(asset_id, 0)
                         if candle[0] < last_ts:
                             continue
                         if candle[0] > last_ts + TIMEFRAME_MS["1m"]:
-                            logger.critical("BACKFILL LIGNE 101 de candle_streamer.py")
-                            logger.critical(f"candle [0] = {candle[0]} last_ts = {last_ts} ET last_ts + TIMEFRAME_MS = {last_ts + TIMEFRAME_MS['1m']}")
                             self._backfill({asset: asset_id})
                 
                         self.last_seen_ts[asset_id] = candle[0]
@@ -128,25 +154,28 @@ class CandleStreamer:
                     attempt_time_sec *= 2
 
     def _update_higher_timeframes (self, asset_id: int):
+        """
+        Check if any higher timeframe candle should be aggregated and inserted.
+        Called after each 1m candle insertion.
+        :param asset_id: Database ID of the asset
+        """
+
         for timeframe in list(TIMEFRAME_MS.keys())[1:]:
             if (self.last_seen_ts[asset_id] + TIMEFRAME_MS["1m"]) % TIMEFRAME_MS[timeframe] == 0:
-                #--------------------------------------------
-                logger.critical(f"UPDATE HIGHTER TIMEFRAMES -> Asset_id = {asset_id}, timeframe = {timeframe}, last_seen_ts = {self.last_seen_ts[asset_id]}")
-                #--------------------------------------------
                 aggregate_candle = self._aggregate_candle(timeframe, asset_id)
-                logger.critical(f"AGGREGATED CANDLE -> {aggregate_candle}")
                 self.database.insert_candle_stream(aggregate_candle)
 
 
     def _aggregate_candle(self, timeframe: str, asset_id: int):
+        """
+        Aggregate the last N 1m candles into a single higher timeframe candle.
+        :param timeframe: Target timeframe label (e.g. '5m', '1h')
+        :param asset_id: Database ID of the asset
+        :return: List of tuples ready for database insertion via format_candles_for_db
+        """
+        
         n = TIMEFRAME_MS[timeframe] // TIMEFRAME_MS["1m"]
-        #--------------------------------------------
-        logger.critical(f"AGGREGATE CANDLES -> timeframe = {timeframe}, n = {n}")
-        #--------------------------------------------
         candles = self.database.get_candles_for_aggregation(n, asset_id, self.timeframes_id["1m"])
-        #--------------------------------------------
-        logger.critical(f"AGGREGATE CANDLES -> candles = {candles}")
-        #--------------------------------------------
         candles = [(*candle[:2], to_timestamp_ms(candle[2]), *candle[3:])
                     for candle in candles]
         open_time = candles[-1][2]
